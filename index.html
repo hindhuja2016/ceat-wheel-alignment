@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEAT Wheel Alignment - Version 3 Live</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#07111f;color:#fff}
+header{background:#e21b23;padding:15px 22px;display:flex;justify-content:space-between;align-items:center}.logo{font-size:30px;font-weight:900}.head{font-size:21px;font-weight:800}
+nav{display:flex;gap:8px;background:#0c1c2d;padding:9px}nav button{padding:11px 17px;border:0;border-radius:8px;background:#1a344d;color:#fff;font-weight:800}nav .active{background:#e21b23}
+.page{max-width:1400px;margin:auto;padding:20px}.panel{background:#10253a;border:1px solid #294b67;border-radius:15px;padding:20px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}input,select{width:100%;padding:13px;border-radius:8px;border:1px solid #45647d;background:#081826;color:#fff;font-size:16px}
+button.action{padding:13px 17px;border:0;border-radius:8px;background:#e21b23;color:#fff;font-weight:800;cursor:pointer}.green{background:#159447!important}.danger{background:#7c1e1e!important}
+.status{padding:10px 13px;border-radius:8px;background:#162e45;color:#a9c7dd;margin-bottom:15px}.online{color:#7ee2a8}.offline{color:#ffb3b3}
+.now{background:#0d1d2d;border:2px solid #315a79;border-radius:15px;padding:22px}.token{color:#ffd34d;font-weight:900}.big{font-size:30px;font-weight:900}.muted{color:#9bb0c2}
+table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px solid #29445c;text-align:left}th{color:#a9cce8}
+.hidden{display:none}.tv{display:grid;grid-template-columns:1fr 2fr;gap:18px}.tv .now{min-height:420px}.tv h1{font-size:48px}.tv table{font-size:19px}
+.setup{font-size:14px;line-height:1.5;background:#081827;border-radius:10px;padding:14px}.setup code{color:#ffd34d}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.tv{grid-template-columns:1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}.head{display:none}}
+</style>
+</head>
+<body>
+<header><div class="logo">CEAT</div><div class="head">WHEEL ALIGNMENT • LIVE QUEUE</div><div id="clock"></div></header>
+<nav><button id="staffBtn" class="active" onclick="tab('staff')">📱 STAFF PANEL</button><button id="tvBtn" onclick="tab('tv')">📺 TV DISPLAY</button><button onclick="openSetup()">⚙ SETUP</button></nav>
+
+<div id="staff" class="page">
+<div class="status" id="status">Connecting to live queue…</div>
+<section class="panel">
+<h2>➕ Add Vehicle</h2>
+<div class="grid">
+<input id="vehicle" placeholder="Vehicle Number">
+<input id="model" placeholder="Car Model">
+<select id="tech"><option value="">Select Technician</option><option>Aravind</option><option>Arjun</option><option>Arivazhagan</option><option>Sarath</option><option>Venkatesh</option><option>Vijay</option></select>
+<button class="action" onclick="addVehicle()">ADD TO QUEUE</button>
+</div>
+</section>
+<section class="panel"><h2>🔧 Current Service — Bay 1</h2><div id="current"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="action green" onclick="complete()">✓ COMPLETE & CALL NEXT</button><button class="action" onclick="nextVehicle()">▶ CALL NEXT</button></div></section>
+<section class="panel"><h2>⏳ Waiting Queue</h2><div id="count" class="muted"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Token</th><th>Vehicle</th><th>Model</th><th>Technician</th><th></th></tr></thead><tbody id="queue"></tbody></table></div></section>
+</div>
+
+<div id="tv" class="page hidden">
+<div class="status" id="tvStatus">Live connection: connecting…</div>
+<section class="tv"><div class="now"><div class="muted">🔧 NOW IN SERVICE — BAY 1</div><h1 id="tToken" class="token">--</h1><div id="tVehicle" class="big">No vehicle</div><h2 id="tModel">Waiting</h2><div class="muted">TECHNICIAN</div><h2 id="tTech">--</h2><h2 id="tState">READY</h2></div>
+<div class="panel"><h2>⏳ WAITING VEHICLES</h2><table><thead><tr><th>Token</th><th>Vehicle Number</th><th>Car Model</th><th>Technician</th></tr></thead><tbody id="tvQueue"></tbody></table></div></section>
+</div>
+
+<div id="setup" class="page hidden">
+<section class="panel"><h2>⚙ Live Connection Setup</h2>
+<p>This Version 3 is designed to use <b>Firebase Realtime Database</b> so the staff phone and TV can share the same queue over the internet.</p>
+<div class="setup">
+1. Create a Firebase project.<br>
+2. Enable <b>Realtime Database</b> and Web app configuration.<br>
+3. Copy your Firebase web configuration into the <code>firebaseConfig</code> object in this file.<br>
+4. Deploy this HTML on a web host (for example Firebase Hosting, GitHub Pages, or another HTTPS host).<br>
+5. Open the same web address on the staff phone and TV. Both devices will then use the same live queue.
+</div>
+<p><b>Important:</b> The file currently contains placeholder Firebase settings. It will not become cross-device live until your Firebase configuration is added.</p>
+</section>
+</div>
+
+<script type="module">
+/* ==========================================================
+   VERSION 3 LIVE DATABASE
+   Replace the placeholder values below with your Firebase
+   Web App configuration. Do not share private server keys.
+   ========================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA_8rvmNjUTaQFv-hKf7bEbGFOhYAF2cK0",
+  authDomain: "ceat-wheel-alignment.firebaseapp.com",
+  databaseURL: "https://ceat-wheel-alignment-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ceat-wheel-alignment",
+  storageBucket: "ceat-wheel-alignment.firebasestorage.app",
+  messagingSenderId: "955854205227",
+  appId: "1:955854205227:web:39822bcf29a86c5520156e",
+  measurementId: "G-EM9DMJFCWH"
+};
+
+let state={current:null,queue:[],nextNo:1,completed:0};
+let liveReady=false, db=null, stateRef=null;
+
+function localFallback(){
+  try{state=JSON.parse(localStorage.getItem("ceatV3")||JSON.stringify(state));}catch(e){}
+  liveReady=false; setStatus("Offline/local mode — add Firebase configuration for phone → TV live updates.",false); render();
+}
+try{
+  if(firebaseConfig.apiKey.startsWith("YOUR_") || firebaseConfig.databaseURL.includes("YOUR_PROJECT")) throw new Error("Firebase config not set");
+  const app=initializeApp(firebaseConfig); db=getDatabase(app); stateRef=ref(db,"ceatWheelAlignment/queue");
+  onValue(stateRef,s=>{if(s.exists())state=s.val();else saveLive();liveReady=true;setStatus("● LIVE — Phone and TV are connected.",true);render();});
+}catch(e){localFallback();}
+
+async function saveLive(){
+  if(liveReady&&stateRef) await set(stateRef,state);
+  else {localStorage.setItem("ceatV3",JSON.stringify(state));render();}
+}
+function setStatus(text,ok){document.getElementById("status").innerHTML=ok?'<span class="online">'+text+'</span>':'<span class="offline">'+text+'</span>';document.getElementById("tvStatus").innerHTML=ok?'<span class="online">'+text+'</span>':'<span class="offline">'+text+'</span>'}
+window.addVehicle=async()=>{
+ const vehicle=document.getElementById("vehicle").value.trim(),model=document.getElementById("model").value.trim(),technician=document.getElementById("tech").value;
+ if(!vehicle||!model||!technician){alert("Enter vehicle number, car model and technician.");return}
+ const v={token:"WA-"+String(state.nextNo).padStart(3,"0"),vehicle,model,technician};state.nextNo++;
+ if(!state.current)state.current=v;else state.queue.push(v);
+ document.getElementById("vehicle").value="";document.getElementById("model").value="";document.getElementById("tech").value="";
+ await saveLive();
+};
+window.nextVehicle=async()=>{if(!state.current&&state.queue.length)state.current=state.queue.shift();else if(state.current&&state.queue.length)state.current=state.queue.shift();await saveLive()};
+window.complete=async()=>{if(!state.current)return;state.completed++;state.current=state.queue.length?state.queue.shift():null;await saveLive()};
+window.removeVehicle=async(i)=>{state.queue.splice(i,1);await saveLive()};
+window.tab=(x)=>{document.getElementById("staff").classList.toggle("hidden",x!=="staff");document.getElementById("tv").classList.toggle("hidden",x!=="tv");document.getElementById("setup").classList.add("hidden");document.getElementById("staffBtn").classList.toggle("active",x==="staff");document.getElementById("tvBtn").classList.toggle("active",x==="tv")};
+window.openSetup=()=>{document.getElementById("staff").classList.add("hidden");document.getElementById("tv").classList.add("hidden");document.getElementById("setup").classList.remove("hidden")};
+
+function render(){
+ const c=state.current;
+ document.getElementById("current").innerHTML=c?`<div class="now"><div class="token">${c.token}</div><div class="big">${c.vehicle}</div><h2>${c.model}</h2><div class="muted">Technician: ${c.technician}</div></div>`:'<div class="muted">No vehicle in service.</div>';
+ document.getElementById("count").textContent=`Waiting: ${state.queue.length} • Completed today: ${state.completed}`;
+ document.getElementById("queue").innerHTML=state.queue.length?state.queue.map((v,i)=>`<tr><td class="token">${v.token}</td><td>${v.vehicle}</td><td>${v.model}</td><td>${v.technician}</td><td><button class="action danger" onclick="removeVehicle(${i})">Remove</button></td></tr>`).join(""):'<tr><td colspan="5" class="muted">No waiting vehicles</td></tr>';
+ document.getElementById("tToken").textContent=c?c.token:"--";document.getElementById("tVehicle").textContent=c?c.vehicle:"No vehicle";document.getElementById("tModel").textContent=c?c.model:"Waiting";document.getElementById("tTech").textContent=c?c.technician:"--";document.getElementById("tState").textContent=c?"SERVICING":"READY";
+ document.getElementById("tvQueue").innerHTML=state.queue.length?state.queue.map(v=>`<tr><td class="token">${v.token}</td><td>${v.vehicle}</td><td>${v.model}</td><td>${v.technician}</td></tr>`).join(""):'<tr><td colspan="4" class="muted" style="text-align:center;padding:35px">NO VEHICLES WAITING</td></tr>';
+}
+function clock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString()}setInterval(clock,1000);clock();
+</script>
+</body>
+</html>

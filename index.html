@@ -21,7 +21,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px s
 </head>
 <body>
 <header><div class="logo">CEAT</div><div class="head">WHEEL ALIGNMENT • LIVE QUEUE</div><div id="clock"></div></header>
-<nav><button id="staffBtn" class="active" onclick="tab('staff')">📱 STAFF PANEL</button><button id="tvBtn" onclick="tab('tv')">📺 TV DISPLAY</button><button onclick="openSetup()">⚙ SETUP</button></nav>
+<nav><button type="button" id="staffBtn" class="active" onclick="tab('staff')">📱 STAFF PANEL</button><button type="button" id="tvBtn" onclick="tab('tv')">📺 TV DISPLAY</button><button type="button" onclick="openSetup()">⚙ SETUP</button></nav>
 
 <div id="staff" class="page">
 <div class="status" id="status">Connecting to live queue…</div>
@@ -31,11 +31,11 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px s
 <input id="vehicle" placeholder="Vehicle Number">
 <input id="model" placeholder="Car Model">
 <select id="tech"><option value="">Select Technician</option><option>Aravind</option><option>Arjun</option><option>Arivazhagan</option><option>Sarath</option><option>Venkatesh</option><option>Vijay</option></select>
-<button class="action" onclick="addVehicle()">ADD TO QUEUE</button>
-</div>
+<button type="button" class="action" onclick="addVehicle()">ADD TO QUEUE</button>
+</div><div id="actionMsg" class="status" style="margin-top:12px;margin-bottom:0">Ready.</div>
 </section>
 <section class="panel"><h2>🔧 Current Service — Bay 1</h2><div id="current"></div>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="action green" onclick="complete()">✓ COMPLETE & CALL NEXT</button><button class="action" onclick="nextVehicle()">▶ CALL NEXT</button></div></section>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button type="button" class="action green" onclick="complete()">✓ COMPLETE & CALL NEXT</button><button type="button" class="action" onclick="nextVehicle()">▶ CALL NEXT</button></div></section>
 <section class="panel"><h2>⏳ Waiting Queue</h2><div id="count" class="muted"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Token</th><th>Vehicle</th><th>Model</th><th>Technician</th><th></th></tr></thead><tbody id="queue"></tbody></table></div></section>
 </div>
 
@@ -80,6 +80,14 @@ const firebaseConfig = {
 };
 
 let state={current:null,queue:[],nextNo:1,completed:0};
+function normalizeState(x){
+  x=x||{};
+  return {current:x.current||null,queue:Array.isArray(x.queue)?x.queue:[],nextNo:Number(x.nextNo)||1,completed:Number(x.completed)||0};
+}
+function actionMessage(text,ok=true){
+  const el=document.getElementById("actionMsg");
+  if(el){el.textContent=text;el.className="status "+(ok?"online":"offline");}
+}
 let liveReady=false, db=null, stateRef=null;
 
 function localFallback(){
@@ -89,26 +97,62 @@ function localFallback(){
 try{
   if(firebaseConfig.apiKey.startsWith("YOUR_") || firebaseConfig.databaseURL.includes("YOUR_PROJECT")) throw new Error("Firebase config not set");
   const app=initializeApp(firebaseConfig); db=getDatabase(app); stateRef=ref(db,"ceatWheelAlignment/queue");
-  onValue(stateRef,s=>{if(s.exists())state=s.val();else saveLive();liveReady=true;setStatus("● LIVE — Phone and TV are connected.",true);render();});
+  onValue(stateRef,s=>{if(s.exists())state=normalizeState(s.val());else saveLive();liveReady=true;setStatus("● LIVE — Phone and TV are connected.",true);render();});
 }catch(e){localFallback();}
 
 async function saveLive(){
-  if(liveReady&&stateRef) await set(stateRef,state);
-  else {localStorage.setItem("ceatV3",JSON.stringify(state));render();}
+  try{
+    state=normalizeState(state);
+    if(liveReady&&stateRef){
+      await set(stateRef,state);
+      render();
+      actionMessage("✓ Saved. TV queue updated live.",true);
+    }else{
+      localStorage.setItem("ceatV3",JSON.stringify(state));
+      render();
+      actionMessage("Saved locally. Firebase live connection is not active.",false);
+    }
+  }catch(err){
+    console.error(err);
+    actionMessage("Firebase save failed. Check Realtime Database Rules.",false);
+    alert("Could not save the vehicle. Please check Firebase Realtime Database Rules.");
+  }
 }
 function setStatus(text,ok){document.getElementById("status").innerHTML=ok?'<span class="online">'+text+'</span>':'<span class="offline">'+text+'</span>';document.getElementById("tvStatus").innerHTML=ok?'<span class="online">'+text+'</span>':'<span class="offline">'+text+'</span>'}
 window.addVehicle=async()=>{
- const vehicle=document.getElementById("vehicle").value.trim(),model=document.getElementById("model").value.trim(),technician=document.getElementById("tech").value;
- if(!vehicle||!model||!technician){alert("Enter vehicle number, car model and technician.");return}
- const v={token:"WA-"+String(state.nextNo).padStart(3,"0"),vehicle,model,technician};state.nextNo++;
- if(!state.current)state.current=v;else state.queue.push(v);
- document.getElementById("vehicle").value="";document.getElementById("model").value="";document.getElementById("tech").value="";
- await saveLive();
+ try{
+   const vehicle=document.getElementById("vehicle").value.trim();
+   const model=document.getElementById("model").value.trim();
+   const technician=document.getElementById("tech").value;
+   if(!vehicle||!model||!technician){
+     actionMessage("Please enter vehicle number, car model and technician.",false);
+     return;
+   }
+   state=normalizeState(state);
+   const v={token:"WA-"+String(state.nextNo).padStart(3,"0"),vehicle,model,technician};
+   state.nextNo++;
+   if(!state.current) state.current=v; else state.queue.push(v);
+   document.getElementById("vehicle").value="";
+   document.getElementById("model").value="";
+   document.getElementById("tech").value="";
+   await saveLive();
+ }catch(err){
+   console.error(err);
+   actionMessage("Add vehicle failed.",false);
+ }
 };
 window.nextVehicle=async()=>{if(!state.current&&state.queue.length)state.current=state.queue.shift();else if(state.current&&state.queue.length)state.current=state.queue.shift();await saveLive()};
 window.complete=async()=>{if(!state.current)return;state.completed++;state.current=state.queue.length?state.queue.shift():null;await saveLive()};
 window.removeVehicle=async(i)=>{state.queue.splice(i,1);await saveLive()};
-window.tab=(x)=>{document.getElementById("staff").classList.toggle("hidden",x!=="staff");document.getElementById("tv").classList.toggle("hidden",x!=="tv");document.getElementById("setup").classList.add("hidden");document.getElementById("staffBtn").classList.toggle("active",x==="staff");document.getElementById("tvBtn").classList.toggle("active",x==="tv")};
+window.tab=(x)=>{
+  document.getElementById("staff").classList.add("hidden");
+  document.getElementById("tv").classList.add("hidden");
+  document.getElementById("setup").classList.add("hidden");
+  if(x==="staff")document.getElementById("staff").classList.remove("hidden");
+  if(x==="tv")document.getElementById("tv").classList.remove("hidden");
+  document.getElementById("staffBtn").classList.toggle("active",x==="staff");
+  document.getElementById("tvBtn").classList.toggle("active",x==="tv");
+};
 window.openSetup=()=>{document.getElementById("staff").classList.add("hidden");document.getElementById("tv").classList.add("hidden");document.getElementById("setup").classList.remove("hidden")};
 
 function render(){

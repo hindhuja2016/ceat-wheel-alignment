@@ -1,46 +1,49 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CEAT Wheel Alignment</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEAT Wheel Alignment</title>
+
 <style>
-body{margin:0;background:#071526;color:#fff;font-family:Arial,sans-serif}header{background:#ed1c24;padding:18px 5%;display:flex;justify-content:space-between;align-items:center}header h1{font-size:42px;margin:0}nav{background:#0b1c2e;padding:14px;display:flex;gap:10px;justify-content:center}button{border:0;border-radius:10px;padding:14px 20px;font-weight:bold;font-size:16px}.nav{background:#1b3b59;color:#fff}.active,.primary{background:#ed1c24;color:#fff}.green{background:#18a957;color:#fff}.danger{background:#b51e25;color:#fff}.secondary{background:#31506b;color:#fff}main{max-width:1100px;margin:auto;padding:20px}.card{background:#122b42;border:1px solid #31506b;border-radius:18px;padding:25px;margin:18px 0}input,select{width:100%;padding:15px;margin:7px 0 15px;border-radius:10px;border:1px solid #38546c;background:#071827;color:white;font-size:17px;box-sizing:border-box}.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}.full{width:100%}.vehicle{background:#081c2e;border:1px solid #31506b;border-radius:14px;padding:18px;margin:12px 0}.current{border:3px solid #18a957}.number{font-size:28px;font-weight:bold}.model{font-size:20px;margin:5px 0}.tech{color:#8ed4ff}.actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.hidden{display:none!important}.status{padding:15px;border-radius:12px;background:#173650;color:#73e6a4}.error{color:#ffb0b0;background:#203a52;padding:12px;border-radius:10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.tv header h1{font-size:52px}.tv main{max-width:1500px}.tv .number{font-size:40px}.tv .model{font-size:27px}.tv .tech{font-size:23px}.tv nav{display:none}@media(max-width:700px){header h1{font-size:34px}.row,.grid{grid-template-columns:1fr}nav button{flex:1;padding:12px 5px;font-size:13px}}
-</style></head><body>
-<header><h1>CEAT</h1><span id="clock"></span></header>
-<nav><button class="nav active" id="staffTab">📱 STAFF PANEL</button><button class="nav" id="tvTab">📺 TV DISPLAY</button><button class="nav" id="setupTab">⚙️ SETUP</button></nav>
-<main><div id="status" class="status">Connecting to Firebase…</div>
-<section id="login" class="card"><h2>🔐 Staff Login</h2><p>Only authorized staff can change the queue.</p><input id="email" type="email" placeholder="Staff email"><input id="password" type="password" placeholder="Password"><button id="loginBtn" class="primary full">LOGIN</button><p id="loginErr" class="error hidden"></p></section>
-<section id="staff" class="hidden">
-<div class="card"><h2>👤 Staff • Control Panel</h2><button id="logout" class="danger">LOGOUT</button></div>
-<div class="card"><h2>➕ Add Vehicle</h2><div class="row"><div><input id="vehicleNo" placeholder="Vehicle Number"></div><div><input id="model" placeholder="Car Model"></div></div><select id="tech"><option value="">Select Technician</option></select><button id="add" class="primary full">ADD TO QUEUE</button><p id="addMsg" class="error hidden"></p></div>
-<div class="card"><h2>🔧 Current Service — Bay 1</h2><div id="current"></div><button id="complete" class="green">✓ COMPLETE & CALL NEXT</button></div>
-<div class="card"><h2>⏳ Waiting Vehicles</h2><div id="waiting"></div></div>
-<div class="card"><h2>👨‍🔧 Technician Management</h2><input id="newTech" placeholder="New technician name"><button id="addTech" class="primary">ADD TECHNICIAN</button><div id="techList"></div><p>Edit changes the technician list only; existing vehicle records keep their original technician.</p></div>
-</section>
-<section id="tv" class="hidden"><div class="grid"><div class="card current"><h2>🔧 NOW SERVICING — BAY 1</h2><div id="tvCurrent"></div></div><div class="card"><h2>⏳ WAITING</h2><div id="tvWaiting"></div></div></div></section>
-<section id="setup" class="hidden"><div class="card"><h2>⚙️ Live Connection</h2><p>For Xiaomi TV, open the same website with <b>?tv=1</b> at the end. TV mode needs no staff login.</p><p>Example: <b>https://hindhuja2016.github.io/ceat-wheel-alignment/?tv=1</b></p></div></section>
-</main>
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import{getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import{getDatabase,ref,onValue,set}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-database.js";
-const firebaseConfig={apiKey:"AIzaSyA_8rvmNjUTaQFv-hKf7bEbGFOhYAF2cK0",authDomain:"ceat-wheel-alignment.firebaseapp.com",databaseURL:"https://ceat-wheel-alignment-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"ceat-wheel-alignment",storageBucket:"ceat-wheel-alignment.firebasestorage.app",messagingSenderId:"955854205227",appId:"1:955854205227:web:39822bcf29a86c5520156e",measurementId:"G-EM9DMJFCWH"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app),qref=ref(db,"alignment/queue"),tref=ref(db,"alignment/technicians");
-let queue=[],techs=[],logged=false;const $=x=>document.getElementById(x);
-function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function err(e){let c=e?.code||"";if(c.includes("permission-denied"))return"Firebase Database permission denied. Check Realtime Database Rules.";if(c.includes("invalid-credential"))return"Invalid email or password.";if(c.includes("unauthorized-domain"))return"Website domain is not authorized in Firebase.";return e?.message||"Firebase error";}
-function render(){let cur=queue.find(v=>v.status==="service"),wait=queue.filter(v=>v.status==="waiting");$("current").innerHTML=cur?vh(cur,true):"<p>No vehicle in service.</p>";$("waiting").innerHTML=wait.length?wait.map(v=>vh(v,false)).join(""):"<p>No waiting vehicles.</p>";$("tvCurrent").innerHTML=cur?vh(cur,true):"<p>No vehicle in service.</p>";$("tvWaiting").innerHTML=wait.length?wait.map(v=>vh(v,false)).join(""):"<p>No waiting vehicles.</p>"}
-function vh(v,c){return `<div class="vehicle ${c?"current":""}"><div class="number">${esc(v.vehicleNo)}</div><div class="model">${esc(v.model)}</div><div class="tech">👨‍🔧 Technician: <b>${esc(v.technician||"—")}</b></div>${!new URLSearchParams(location.search).has("tv")&&logged&&!c?`<div class="actions"><button class="secondary" data-call="${v.id}">CALL TO SERVICE</button><button class="danger" data-del="${v.id}">REMOVE</button></div>`:""}</div>`}
-function renderTechs(){$("tech").innerHTML='<option value="">Select Technician</option>'+techs.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");$("techList").innerHTML=techs.map(t=>`<div class="vehicle"><b>${esc(t.name)}</b><div class="actions"><button class="secondary" data-edit="${t.id}">✏️ EDIT NAME</button><button class="danger" data-tdelete="${t.id}">🗑️ DELETE</button></div></div>`).join("")||"<p>No technicians yet.</p>"}
-async function saveQ(){let o={};queue.forEach(v=>o[v.id]=v);await set(qref,o)}
-async function saveT(){let o={};techs.forEach(t=>o[t.id]=t);await set(tref,o)}
-$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value)}catch(e){$("loginErr").textContent=err(e);$("loginErr").classList.remove("hidden")}};
-$("logout").onclick=()=>signOut(auth);
-$("add").onclick=async()=>{let n=$("vehicleNo").value.trim(),m=$("model").value.trim(),id=$("tech").value;if(!n||!m||!id)return alert("Enter vehicle number, car model and technician.");let t=techs.find(x=>x.id===id);let v={id:"v_"+Date.now(),vehicleNo:n,model:m,technician:t.name,status:queue.some(x=>x.status==="service")?"waiting":"service",createdAt:new Date().toISOString()};queue.push(v);try{await saveQ();$("vehicleNo").value="";$("model").value="";$("tech").value="";$("addMsg").textContent="Saved to Firebase live queue.";$("addMsg").classList.remove("hidden")}catch(e){queue.pop();alert(err(e))}};
-$("complete").onclick=async()=>{let c=queue.find(v=>v.status==="service");if(!c)return; c.status="completed";let n=queue.find(v=>v.status==="waiting");if(n)n.status="service";await saveQ()};
-$("addTech").onclick=async()=>{let n=$("newTech").value.trim();if(!n)return;techs.push({id:"t_"+Date.now(),name:n});await saveT();$("newTech").value=""};
-document.addEventListener("click",async e=>{let x=e.target.closest("[data-call]");if(x){let c=queue.find(v=>v.status==="service");if(c)c.status="waiting";let v=queue.find(v=>v.id===x.dataset.call);if(v)v.status="service";await saveQ()}let d=e.target.closest("[data-del]");if(d&&confirm("Remove vehicle?")){queue=queue.filter(v=>v.id!==d.dataset.del);await saveQ()}let ed=e.target.closest("[data-edit]");if(ed){let t=techs.find(x=>x.id===ed.dataset.edit),n=prompt("New technician name:",t.name);if(n?.trim()){t.name=n.trim();await saveT()}}let td=e.target.closest("[data-tdelete]");if(td&&confirm("Delete technician? Existing vehicle records will not change.")){techs=techs.filter(t=>t.id!==td.dataset.tdelete);await saveT()}});
-function view(v){["login","staff","tv","setup"].forEach(x=>$(x).classList.add("hidden"));["staffTab","tvTab","setupTab"].forEach(x=>$(x).classList.remove("active"));if(v==="staff"){logged?$("staff").classList.remove("hidden"):$("login").classList.remove("hidden");$("staffTab").classList.add("active")}if(v==="tv"){$("tv").classList.remove("hidden");$("tvTab").classList.add("active")}if(v==="setup"){$("setup").classList.remove("hidden");$("setupTab").classList.add("active")}}
-$("staffTab").onclick=()=>view("staff");$("tvTab").onclick=()=>view("tv");$("setupTab").onclick=()=>view("setup");
-onAuthStateChanged(auth,u=>{logged=!!u;view(new URLSearchParams(location.search).get("tv")==="1"?"tv":"staff");$("status").textContent=u?"● LIVE — Firebase connected.":"TV mode is live; staff login required for changes."});
-onValue(qref,s=>{queue=Object.values(s.val()||{});render();$("status").textContent="● LIVE — Phone and TV are connected."},e=>{$("status").textContent="Firebase database error: "+err(e)});
-onValue(tref,s=>{techs=Object.values(s.val()||{});renderTechs()});
-setInterval(()=>$("clock").textContent=new Date().toLocaleTimeString(),1000);
-if(new URLSearchParams(location.search).get("tv")==="1"){document.body.classList.add("tv");view("tv")}
-</script></body></html>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#061426;color:white;
+ font-family:Arial,sans-serif;
+}
+header{
+ background:#ed171f;padding:20px;
+ display:flex;justify-content:space-between;align-items:center;
+ font-size:28px;font-weight:bold;
+}
+nav{display:flex;gap:10px;padding:15px;background:#081a2b}
+nav button{
+ flex:1;padding:18px;border:0;border-radius:12px;
+ background:#173550;color:white;font-size:18px;font-weight:bold
+}
+nav button.active{background:#ed171f}
+.container{max-width:900px;margin:auto;padding:20px}
+.card{
+ background:#102b43;border:1px solid #28506d;
+ border-radius:22px;padding:25px;margin:20px 0
+}
+h1,h2{margin-top:0}
+input,select{
+ width:100%;padding:17px;margin:8px 0;
+ border-radius:12px;border:1px solid #42647d;
+ background:#061827;color:white;font-size:17px
+}
+button.action{
+ width:100%;padding:17px;margin-top:10px;
+ border:0;border-radius:12px;background:#ed171f;
+ color:white;font-size:18px;font-weight:bold
+}
+button.green{background:#16a34a}
+button.gray{background:#334b60}
+.vehicle{
+ background:#081d30;border-radius:15px;
+ padding:18px;margin:12px 0
+}
+.vehicle strong{font-size:22px}
+.small{color:#9db3c8}
+.error{background:#49202a;color:#ffb8c0;padding:15

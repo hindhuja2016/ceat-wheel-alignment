@@ -17,36 +17,98 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px s
 .hidden{display:none}.tv{display:grid;grid-template-columns:1fr 2fr;gap:18px}.tv .now{min-height:420px}.tv h1{font-size:48px}.tv table{font-size:19px}
 .setup{font-size:14px;line-height:1.5;background:#081827;border-radius:10px;padding:14px}.setup code{color:#ffd34d}
 @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.tv{grid-template-columns:1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}.head{display:none}}
+
+.tvTop{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#0c1c2d;padding:14px 20px;border-radius:12px;margin-bottom:15px;font-size:20px}
+.tvTop b{font-size:34px}.tvTop span{margin-left:12px;color:#9bb0c2}.tvFull{padding:10px 14px;border:0;border-radius:8px;background:#e21b23;color:#fff;font-weight:800}
+.tvNow{min-height:570px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.tvLabel{font-size:22px;color:#a9cce8;font-weight:800;letter-spacing:1px}
+.tvToken{font-size:70px;font-weight:900;color:#ffd34d;margin:8px}.tvVehicle{font-size:54px;font-weight:900}.tvModel{font-size:30px;margin:8px}.tvTech{font-size:23px;color:#b9d2e6;margin:12px}.tvState{font-size:26px;font-weight:900}.tvTimer{color:#9bb0c2;margin-top:8px}
+.tvWait th,.tvWait td{font-size:19px}.tvFooter{text-align:center;margin-top:20px;font-size:20px;color:#a9cce8}
+@media(max-width:900px){.tvVehicle{font-size:38px}.tvToken{font-size:52px}.tvNow{min-height:430px}.tvTop span{display:none}}
 </style>
 </head>
 <body>
 <header><div class="logo">CEAT</div><div class="head">WHEEL ALIGNMENT • LIVE QUEUE</div><div id="clock"></div></header>
 <nav><button type="button" id="staffBtn" class="active" onclick="tab('staff')">📱 STAFF PANEL</button><button type="button" id="tvBtn" onclick="tab('tv')">📺 TV DISPLAY</button><button type="button" onclick="openSetup()">⚙ SETUP</button></nav>
 
-<div id="staff" class="page">
+
+<div id="login" class="page">
+<section class="panel" style="max-width:560px;margin:35px auto">
+<h2>🔐 Staff Login</h2>
+<p class="muted">Only authorized staff can change the wheel-alignment queue.</p>
+<div class="grid" style="grid-template-columns:1fr">
+<input id="loginEmail" type="email" placeholder="Staff email">
+<input id="loginPassword" type="password" placeholder="Password">
+<button type="button" class="action" onclick="staffLogin()">LOGIN</button>
+</div>
+<div id="loginMsg" class="status" style="margin-top:12px">Please sign in.</div>
+</section>
+</div>
+<div id="staff" class="page hidden">
+<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+<div>👤 <b id="staffUser">Staff</b> <span class="muted">• Control Panel</span></div>
+<button type="button" class="action danger" onclick="staffLogout()">LOGOUT</button>
+</div>
 <div class="status" id="status">Connecting to live queue…</div>
 <section class="panel">
 <h2>➕ Add Vehicle</h2>
 <div class="grid">
 <input id="vehicle" placeholder="Vehicle Number">
 <input id="model" placeholder="Car Model">
-<select id="tech"><option value="">Select Technician</option><option>Aravind</option><option>Arjun</option><option>Arivazhagan</option><option>Sarath</option><option>Venkatesh</option><option>Vijay</option></select>
+<select id="tech"><option value="">Select Technician</option></select>
 <button type="button" class="action" onclick="addVehicle()">ADD TO QUEUE</button>
 </div><div id="actionMsg" class="status" style="margin-top:12px;margin-bottom:0">Ready.</div>
 </section>
 <section class="panel"><h2>🔧 Current Service — Bay 1</h2><div id="current"></div>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button type="button" class="action green" onclick="complete()">✓ COMPLETE & CALL NEXT</button><button type="button" class="action" onclick="nextVehicle()">▶ CALL NEXT</button></div></section>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button type="button" class="action green" onclick="complete()">✓ COMPLETE & CALL NEXT</button><button type="button" class="action" onclick="nextVehicle()">▶ CALL NEXT</button><button type="button" class="action" onclick="announceCurrent()">🔊 ANNOUNCE VEHICLE</button></div></section>
+<section class="panel"><h2>📊 Today</h2>
+<div class="grid">
+<div class="now"><div class="muted">CURRENT</div><div class="big" id="statCurrent">0</div></div>
+<div class="now"><div class="muted">WAITING</div><div class="big" id="statWaiting">0</div></div>
+<div class="now"><div class="muted">COMPLETED</div><div class="big" id="statCompleted">0</div></div>
+<div class="now"><div class="muted">TOTAL</div><div class="big" id="statTotal">0</div></div>
+</div></section>
+
+<section class="panel">
+<h2>👨‍🔧 Technician Management</h2>
+<div class="grid">
+<input id="newTech" placeholder="New technician name">
+<button type="button" class="action" onclick="addTechnician()">ADD TECHNICIAN</button>
+</div>
+<div id="techList" style="margin-top:12px"></div>
+<div class="status" style="margin-top:12px;margin-bottom:0">Technician changes are stored in Firebase and do not change existing vehicles in the queue.</div>
+</section>
 <section class="panel"><h2>⏳ Waiting Queue</h2><div id="count" class="muted"></div><div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Token</th><th>Vehicle</th><th>Model</th><th>Technician</th><th></th></tr></thead><tbody id="queue"></tbody></table></div></section>
 </div>
 
+
 <div id="tv" class="page hidden">
 <div class="status" id="tvStatus">Live connection: connecting…</div>
-<section class="tv"><div class="now"><div class="muted">🔧 NOW IN SERVICE — BAY 1</div><h1 id="tToken" class="token">--</h1><div id="tVehicle" class="big">No vehicle</div><h2 id="tModel">Waiting</h2><div class="muted">TECHNICIAN</div><h2 id="tTech">--</h2><h2 id="tState">READY</h2></div>
-<div class="panel"><h2>⏳ WAITING VEHICLES</h2><table><thead><tr><th>Token</th><th>Vehicle Number</th><th>Car Model</th><th>Technician</th></tr></thead><tbody id="tvQueue"></tbody></table></div></section>
+<div class="tvTop">
+  <div><b>CEAT</b> <span>WHEEL ALIGNMENT • BAY 1</span></div>
+  <div id="tvClock"></div>
+  <button type="button" class="tvFull" onclick="goFullscreen()">⛶ FULL SCREEN</button>
 </div>
-
+<section class="tv">
+<div class="now tvNow">
+  <div class="tvLabel">🔧 NOW SERVING</div>
+  <div id="tToken" class="tvToken">--</div>
+  <div id="tVehicle" class="tvVehicle">NO VEHICLE</div>
+  <div id="tModel" class="tvModel">Waiting for vehicle</div>
+  <div class="tvTech">👨‍🔧 <span id="tTech">--</span></div>
+  <div id="tState" class="tvState">READY</div>
+  <div id="tTimer" class="tvTimer">Service time: --</div>
+</div>
+<div class="panel tvWait">
+  <div class="tvLabel">⏳ WAITING VEHICLES</div>
+  <table><thead><tr><th>TOKEN</th><th>VEHICLE</th><th>CAR MODEL</th><th>TECHNICIAN</th></tr></thead>
+  <tbody id="tvQueue"></tbody></table>
+  <div class="tvFooter">Vehicles completed today: <b id="tvCompleted">0</b></div>
+</div>
+</section>
+</div>
 <div id="setup" class="page hidden">
-<section class="panel"><h2>⚙ Live Connection Setup</h2>
+<section class="panel"><h2>⚙ Version 4 Setup</h2><p><b>Staff login:</b> Firebase Authentication must have Email/Password enabled and a staff user created. TV can stay on the TV Display screen.</p>
 <p>This Version 3 is designed to use <b>Firebase Realtime Database</b> so the staff phone and TV can share the same queue over the internet.</p>
 <div class="setup">
 1. Create a Firebase project.<br>
@@ -67,6 +129,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:13px;border-bottom:1px s
    ========================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA_8rvmNjUTaQFv-hKf7bEbGFOhYAF2cK0",
@@ -82,13 +145,21 @@ const firebaseConfig = {
 let state={current:null,queue:[],nextNo:1,completed:0};
 function normalizeState(x){
   x=x||{};
-  return {current:x.current||null,queue:Array.isArray(x.queue)?x.queue:[],nextNo:Number(x.nextNo)||1,completed:Number(x.completed)||0};
+  return {
+    current:x.current||null,
+    queue:Array.isArray(x.queue)?x.queue:[],
+    nextNo:Number(x.nextNo)||1,
+    completed:Number(x.completed)||0,
+    technicians:Array.isArray(x.technicians)&&x.technicians.length?x.technicians:TECHNICIANS.slice()
+  };
 }
 function actionMessage(text,ok=true){
   const el=document.getElementById("actionMsg");
   if(el){el.textContent=text;el.className="status "+(ok?"online":"offline");}
 }
-let liveReady=false, db=null, stateRef=null;
+let liveReady=false, db=null, stateRef=null, auth=null, user=null;
+let serviceStartedAt=null;
+const TECHNICIANS=["Aravind","Arjun","Arivazhagan","Sarath","Venkatesh","Vijay"];
 
 function localFallback(){
   try{state=JSON.parse(localStorage.getItem("ceatV3")||JSON.stringify(state));}catch(e){}
@@ -96,8 +167,24 @@ function localFallback(){
 }
 try{
   if(firebaseConfig.apiKey.startsWith("YOUR_") || firebaseConfig.databaseURL.includes("YOUR_PROJECT")) throw new Error("Firebase config not set");
-  const app=initializeApp(firebaseConfig); db=getDatabase(app); stateRef=ref(db,"ceatWheelAlignment/queue");
-  onValue(stateRef,s=>{if(s.exists())state=normalizeState(s.val());else saveLive();liveReady=true;setStatus("● LIVE — Phone and TV are connected.",true);render();});
+  const app=initializeApp(firebaseConfig);
+  db=getDatabase(app); stateRef=ref(db,"ceatWheelAlignment/queue"); auth=getAuth(app);
+
+  onAuthStateChanged(auth, async (u)=>{
+    user=u;
+    document.getElementById("login").classList.toggle("hidden",!!u);
+    document.getElementById("staff").classList.toggle("hidden",!u);
+    if(u) document.getElementById("staffUser").textContent=u.email||"Staff";
+    render();
+  });
+
+  onValue(stateRef,s=>{
+    if(s.exists()) state=normalizeState(s.val());
+    else { state=normalizeState(state); if(user) saveLive(); }
+    liveReady=true;
+    setStatus("● LIVE — Phone and TV are connected.",true);
+    render();
+  });
 }catch(e){localFallback();}
 
 async function saveLive(){
@@ -131,7 +218,7 @@ window.addVehicle=async()=>{
    state=normalizeState(state);
    const v={token:"WA-"+String(state.nextNo).padStart(3,"0"),vehicle,model,technician};
    state.nextNo++;
-   if(!state.current) state.current=v; else state.queue.push(v);
+   if(!state.current){v.startedAt=Date.now();state.current=v;serviceStartedAt=v.startedAt;} else state.queue.push(v);
    document.getElementById("vehicle").value="";
    document.getElementById("model").value="";
    document.getElementById("tech").value="";
@@ -141,8 +228,8 @@ window.addVehicle=async()=>{
    actionMessage("Add vehicle failed.",false);
  }
 };
-window.nextVehicle=async()=>{if(!state.current&&state.queue.length)state.current=state.queue.shift();else if(state.current&&state.queue.length)state.current=state.queue.shift();await saveLive()};
-window.complete=async()=>{if(!state.current)return;state.completed++;state.current=state.queue.length?state.queue.shift():null;await saveLive()};
+window.nextVehicle=async()=>{if(state.queue.length){state.current=state.queue.shift();state.current.startedAt=Date.now();serviceStartedAt=state.current.startedAt;}await saveLive()};
+window.complete=async()=>{if(!state.current)return;state.completed++;state.current=state.queue.length?state.queue.shift():null;if(state.current){state.current.startedAt=Date.now();serviceStartedAt=state.current.startedAt;}await saveLive()};
 window.removeVehicle=async(i)=>{state.queue.splice(i,1);await saveLive()};
 window.tab=(x)=>{
   document.getElementById("staff").classList.add("hidden");
@@ -155,15 +242,119 @@ window.tab=(x)=>{
 };
 window.openSetup=()=>{document.getElementById("staff").classList.add("hidden");document.getElementById("tv").classList.add("hidden");document.getElementById("setup").classList.remove("hidden")};
 
+
+window.staffLogin=async()=>{
+  const email=document.getElementById("loginEmail").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  const msg=document.getElementById("loginMsg");
+  if(!email||!password){msg.textContent="Enter email and password.";msg.className="status offline";return;}
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    msg.textContent="Login successful.";msg.className="status online";
+  }catch(e){
+    msg.textContent="Login failed. Check the staff email/password and Firebase Authentication.";msg.className="status offline";
+  }
+};
+window.staffLogout=async()=>{if(auth)await signOut(auth);};
+window.goFullscreen=async()=>{
+  try{await document.documentElement.requestFullscreen();}catch(e){alert("Full-screen is not available in this browser.");}
+};
+window.announceCurrent=()=>{
+  const c=state.current;
+  if(!c||!("speechSynthesis" in window))return;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(`Token ${c.token}. Vehicle ${c.vehicle}. Please proceed to wheel alignment bay one.`));
+};
+
+function renderTechnicians(){
+  const list=state.technicians||TECHNICIANS;
+  const sel=document.getElementById("tech");
+  if(sel){
+    const current=sel.value;
+    sel.innerHTML='<option value="">Select Technician</option>'+list.map(n=>`<option>${escapeHtml(n)}</option>`).join("");
+    if(list.includes(current))sel.value=current;
+  }
+  const box=document.getElementById("techList");
+  if(box){
+    box.innerHTML=list.map((n,i)=>`
+      <div style="display:flex;gap:8px;align-items:center;margin:7px 0;flex-wrap:wrap">
+        <span style="flex:1;padding:10px 12px;background:#081827;border-radius:8px">${escapeHtml(n)}</span>
+        <button type="button" class="action" onclick="renameTechnician(${i})">EDIT</button>
+        <button type="button" class="action danger" onclick="deleteTechnician(${i})">DELETE</button>
+      </div>`).join("");
+  }
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+window.addTechnician=async()=>{
+  if(!user){alert("Please log in first.");return;}
+  const input=document.getElementById("newTech");
+  const name=input.value.trim();
+  if(!name){alert("Enter a technician name.");return;}
+  state=normalizeState(state);
+  if(state.technicians.some(n=>n.toLowerCase()===name.toLowerCase())){alert("Technician already exists.");return;}
+  state.technicians.push(name);
+  input.value="";
+  await saveLive();
+  renderTechnicians();
+};
+window.renameTechnician=async(i)=>{
+  if(!user){alert("Please log in first.");return;}
+  state=normalizeState(state);
+  const old=state.technicians[i];
+  if(old==null)return;
+  const name=prompt("Enter new technician name:",old);
+  if(name===null)return;
+  const n=name.trim();
+  if(!n)return;
+  if(state.technicians.some((x,j)=>j!==i&&x.toLowerCase()===n.toLowerCase())){alert("Technician already exists.");return;}
+  state.technicians[i]=n;
+  await saveLive();
+  renderTechnicians();
+};
+window.deleteTechnician=async(i)=>{
+  if(!user){alert("Please log in first.");return;}
+  state=normalizeState(state);
+  if(state.technicians.length<=1){alert("Keep at least one technician.");return;}
+  const name=state.technicians[i];
+  if(!confirm(`Delete technician "${name}" from the list? Existing queue records will not be changed.`))return;
+  state.technicians.splice(i,1);
+  await saveLive();
+  renderTechnicians();
+};
+
 function render(){
+ state=normalizeState(state);
+ renderTechnicians();
  const c=state.current;
- document.getElementById("current").innerHTML=c?`<div class="now"><div class="token">${c.token}</div><div class="big">${c.vehicle}</div><h2>${c.model}</h2><div class="muted">Technician: ${c.technician}</div></div>`:'<div class="muted">No vehicle in service.</div>';
+ if(c && !c.startedAt){c.startedAt=Date.now(); serviceStartedAt=c.startedAt;}
+ if(c && c.startedAt) serviceStartedAt=c.startedAt;
+ document.getElementById("statCurrent").textContent=c?1:0;
+ document.getElementById("statWaiting").textContent=state.queue.length;
+ document.getElementById("statCompleted").textContent=state.completed;
+ document.getElementById("statTotal").textContent=state.completed+(c?1:0)+state.queue.length;
+ document.getElementById("current").innerHTML=c?`<div class="now"><div class="token">${c.token}</div><div class="big">${c.vehicle}</div><h2>${c.model}</h2><div class="muted">Technician: ${c.technician}</div><div class="muted" id="serviceTimer">Service time: --</div></div>`:'<div class="muted">No vehicle in service.</div>';
  document.getElementById("count").textContent=`Waiting: ${state.queue.length} • Completed today: ${state.completed}`;
  document.getElementById("queue").innerHTML=state.queue.length?state.queue.map((v,i)=>`<tr><td class="token">${v.token}</td><td>${v.vehicle}</td><td>${v.model}</td><td>${v.technician}</td><td><button class="action danger" onclick="removeVehicle(${i})">Remove</button></td></tr>`).join(""):'<tr><td colspan="5" class="muted">No waiting vehicles</td></tr>';
- document.getElementById("tToken").textContent=c?c.token:"--";document.getElementById("tVehicle").textContent=c?c.vehicle:"No vehicle";document.getElementById("tModel").textContent=c?c.model:"Waiting";document.getElementById("tTech").textContent=c?c.technician:"--";document.getElementById("tState").textContent=c?"SERVICING":"READY";
+ document.getElementById("tToken").textContent=c?c.token:"--";document.getElementById("tVehicle").textContent=c?c.vehicle:"NO VEHICLE";document.getElementById("tModel").textContent=c?c.model:"Waiting for vehicle";document.getElementById("tTech").textContent=c?c.technician:"--";document.getElementById("tState").textContent=c?"SERVICING":"READY";document.getElementById("tvCompleted").textContent=state.completed;
  document.getElementById("tvQueue").innerHTML=state.queue.length?state.queue.map(v=>`<tr><td class="token">${v.token}</td><td>${v.vehicle}</td><td>${v.model}</td><td>${v.technician}</td></tr>`).join(""):'<tr><td colspan="4" class="muted" style="text-align:center;padding:35px">NO VEHICLES WAITING</td></tr>';
 }
-function clock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString()}setInterval(clock,1000);clock();
+function updateTimes(){
+  const now=Date.now();
+  if(state.current && state.current.startedAt){
+    const sec=Math.max(0,Math.floor((now-state.current.startedAt)/1000));
+    const txt=`Service time: ${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`;
+    const a=document.getElementById("serviceTimer"), b=document.getElementById("tTimer");
+    if(a)a.textContent=txt;if(b)b.textContent=txt;
+  }else{
+    const a=document.getElementById("serviceTimer"), b=document.getElementById("tTimer");
+    if(a)a.textContent="Service time: --";if(b)b.textContent="Service time: --";
+  }
+  const tv=document.getElementById("tvClock");if(tv)tv.textContent=new Date().toLocaleTimeString();
+}
+function clock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString();updateTimes()}
+setInterval(clock,1000);clock();
 </script>
 </body>
 </html>
